@@ -1,0 +1,13 @@
+[package]
+name = "signal-future"
+description = "Future that can be resolved via a controller"
+version = "0.0.1"
+license = "Apache-2.0"
+homepage = "https://github.com/wilsonzlin/signal-future"
+edition = "2021"
+keywords = ["async", "future", "controller", "programmatic", "signal"]
+authors = ["Wilson Lin <code@wilsonl.in>"]
+repository = "https://github.com/wilsonzlin/signal-future.git"
+
+[badges]
+maintenance = { status = "actively-developed" }
