@@ -54,7 +54,7 @@ pub struct SignalFuture<T = ()> {
 }
 
 impl<T> SignalFuture<T> {
-  pub fn new() -> (SignalFuture, SignalFutureController) {
+  pub fn new() -> (SignalFuture<T>, SignalFutureController<T>) {
     let shared_state = Arc::new(Mutex::new(State {
       value: None,
       waker: None,
