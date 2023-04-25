@@ -11,3 +11,6 @@ repository = "https://github.com/wilsonzlin/signal-future.git"
 
 [badges]
 maintenance = { status = "actively-developed" }
+
+[dependencies]
+parking_lot = "0.12.1"

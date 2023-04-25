@@ -1,25 +1,25 @@
+use parking_lot::Mutex;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::Arc;
-use std::sync::Mutex;
 use std::task::Context;
 use std::task::Poll;
 use std::task::Waker;
 
-struct State {
-  completed: bool,
+struct State<T = ()> {
+  value: Option<T>,
   waker: Option<Waker>,
 }
 
 #[derive(Clone)]
-pub struct SignalFutureController {
-  shared_state: Arc<Mutex<State>>,
+pub struct SignalFutureController<T = ()> {
+  shared_state: Arc<Mutex<State<T>>>,
 }
 
-impl SignalFutureController {
-  pub fn signal(&self) {
-    let mut shared_state = self.shared_state.lock().unwrap();
-    shared_state.completed = true;
+impl<T> SignalFutureController<T> {
+  pub fn signal(&self, value: T) {
+    let mut shared_state = self.shared_state.lock();
+    shared_state.value = Some(value);
     if let Some(waker) = shared_state.waker.take() {
       waker.wake();
     };
@@ -43,20 +43,20 @@ impl SignalFutureController {
 ///       sleep(Duration::from_millis(500));
 ///       for (offset, data, fut_ctl) in self.pending.lock().await.drain(..) {
 ///         self.fd.write_at(offset, data).await;
-///         fut_ctl.signal();
+///         fut_ctl.signal(());
 ///       };
 ///     };
 ///   }
 /// }
 /// ```
-pub struct SignalFuture {
-  shared_state: Arc<Mutex<State>>,
+pub struct SignalFuture<T = ()> {
+  shared_state: Arc<Mutex<State<T>>>,
 }
 
-impl SignalFuture {
+impl<T> SignalFuture<T> {
   pub fn new() -> (SignalFuture, SignalFutureController) {
     let shared_state = Arc::new(Mutex::new(State {
-      completed: false,
+      value: None,
       waker: None,
     }));
 
@@ -71,13 +71,13 @@ impl SignalFuture {
   }
 }
 
-impl Future for SignalFuture {
-  type Output = ();
+impl<T> Future for SignalFuture<T> {
+  type Output = T;
 
   fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-    let mut shared_state = self.shared_state.lock().unwrap();
-    if shared_state.completed {
-      Poll::Ready(())
+    let mut shared_state = self.shared_state.lock();
+    if let Some(v) = shared_state.value.take() {
+      Poll::Ready(v)
     } else {
       shared_state.waker = Some(cx.waker().clone());
       Poll::Pending
